@@ -24,9 +24,9 @@
                 <option value="selesai" {{ request('status') == 'selesai' ? 'selected' : '' }}>Selesai</option>
                 <option value="batal" {{ request('status') == 'batal' ? 'selected' : '' }}>Batal</option>
             </select>
-            <button type="submit" class="bg-stone-800 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-stone-700 transition">Filter</button>
+            <button type="submit" class="bg-stone-900 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-black transition">Filter</button>
             @if(request('search') || request('status'))
-                <a href="{{ route('admin.pesanan.index') }}" class="px-4 py-2 text-stone-500 hover:text-mentari-red text-sm font-medium transition">Reset</a>
+                <a href="{{ route('admin.pesanan.index') }}" title="Reset Filter" class="px-4 py-2 bg-stone-200 hover:bg-stone-300 text-stone-700 rounded-lg text-sm font-bold transition">Reset</a>
             @endif
         </form>
     </div>
@@ -66,7 +66,7 @@
                                         'dibayar' => 'bg-blue-100 text-blue-800',
                                         'diproses' => 'bg-indigo-100 text-indigo-800',
                                         'dikirim' => 'bg-purple-100 text-purple-800',
-                                        'selesai' => 'bg-green-100 text-green-800',
+                                        'selesai' => 'bg-green-100 text-mentari-green-dark',
                                         'batal' => 'bg-red-100 text-red-800',
                                     ];
                                     $color = $colors[$pesanan->status] ?? 'bg-stone-100 text-stone-800';
@@ -76,7 +76,7 @@
                                 </span>
                             </td>
                             <td class="px-6 py-4 text-right">
-                                <a href="{{ route('admin.pesanan.show', $pesanan->id) }}" class="inline-flex items-center gap-1.5 text-blue-600 hover:text-blue-700 font-medium text-xs bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition">
+                                <a href="{{ route('admin.pesanan.show', $pesanan->id) }}" class="inline-flex items-center gap-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 border border-stone-200 px-3 py-1.5 rounded-lg text-xs font-bold transition">
                                     Detail
                                 </a>
                             </td>

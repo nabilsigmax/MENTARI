@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\ChatMessage;
 use App\Models\ChatSession;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -66,5 +65,17 @@ class ChatController extends Controller
             ->route('admin.chat.show', $chatSession)
             ->with('success', 'Pesan berhasil dikirim.');
     }
-}
 
+    /**
+     * Delete a chat session and all its messages.
+     */
+    public function destroy(ChatSession $chatSession): RedirectResponse
+    {
+        $chatSession->messages()->delete();
+        $chatSession->delete();
+
+        return redirect()
+            ->route('admin.chat.index')
+            ->with('success', 'Obrolan berhasil dihapus.');
+    }
+}

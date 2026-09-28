@@ -6,18 +6,24 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    /**
+     * Run the migrations.
+     */
     public function up(): void
     {
         Schema::table('pesanans', function (Blueprint $table) {
-            // Ini akan menimpa tipe data lama menjadi bigInteger tanpa menghapus isi tabel
-            $table->bigInteger('total_harga')->change();
+            $table->date('tanggal_dikirim')->nullable()->after('status');
+            $table->date('tanggal_diterima')->nullable()->after('tanggal_dikirim');
         });
     }
 
+    /**
+     * Reverse the migrations.
+     */
     public function down(): void
     {
         Schema::table('pesanans', function (Blueprint $table) {
-            $table->integer('total_harga')->change();
+            $table->dropColumn(['tanggal_dikirim', 'tanggal_diterima']);
         });
     }
 };

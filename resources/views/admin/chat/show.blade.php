@@ -88,7 +88,7 @@
                             @enderror
                         </div>
                         <button type="submit"
-                            class="inline-flex items-center gap-2 bg-mentari-red hover:bg-red-700 text-white px-5 py-3 rounded-xl text-sm font-bold transition shadow-xs">
+                            class="inline-flex items-center gap-2 bg-mentari-red hover:bg-mentari-red-dark text-white px-5 py-3 rounded-xl text-sm font-bold transition shadow-xs">
                             <i data-lucide="send" class="w-4 h-4"></i>
                             Kirim
                         </button>

@@ -16,6 +16,14 @@ class ChatController extends Controller
     {
         $session = $this->resolveSession($request);
 
+        // Pastikan nama sesi selalu sinkron dengan nama akun user yang login
+        if (auth()->check()) {
+            $authName = auth()->user()->name;
+            if ($session->customer_name !== $authName) {
+                $session->update(['customer_name' => $authName]);
+            }
+        }
+
         $messages = $session->messages()
             ->orderBy('created_at', 'asc')
             ->get()
@@ -44,15 +52,20 @@ class ChatController extends Controller
 
         $session = $this->resolveSession($request);
 
-        // Update customer name if provided and not yet set
-        if ($request->filled('customer_name') && ! $session->customer_name) {
+        // Prioritas: nama dari user yang login, lalu dari request, lalu jaga yang sudah ada
+        if (auth()->check()) {
+            $authName = auth()->user()->name;
+            if ($session->customer_name !== $authName) {
+                $session->update(['customer_name' => $authName]);
+            }
+        } elseif ($request->filled('customer_name') && ! $session->customer_name) {
             $session->update(['customer_name' => $request->input('customer_name')]);
         }
 
         $message = $session->messages()->create([
             'message' => $request->input('message'),
             'is_admin' => false,
-            'user_id' => null,
+            'user_id' => auth()->id(),
         ]);
 
         return response()->json([
@@ -80,8 +93,13 @@ class ChatController extends Controller
             }
         }
 
+        // Gunakan nama user yang login jika tersedia
+        $defaultName = auth()->check()
+            ? auth()->user()->name
+            : ($request->input('customer_name') ?: 'Pengunjung');
+
         $session = ChatSession::create([
-            'customer_name' => $request->input('customer_name', 'Pengunjung'),
+            'customer_name' => $defaultName,
         ]);
 
         $request->session()->put('chat_session_id', $session->id);
@@ -89,4 +107,3 @@ class ChatController extends Controller
         return $session;
     }
 }
-

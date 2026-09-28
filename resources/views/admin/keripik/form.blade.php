@@ -28,7 +28,7 @@
 
     <!-- Error Validation Alert -->
     @if ($errors->any())
-        <div class="rounded-2xl bg-red-50 border border-red-200 p-4 text-sm text-red-800 shadow-xs">
+        <div class="rounded-2xl bg-green-50 border border-green-200 p-4 text-sm text-green-800 shadow-xs">
             <div class="flex items-center gap-2 font-bold mb-2">
                 <i data-lucide="alert-triangle" class="w-4 h-4 text-red-600"></i>
                 <span>Terdapat kesalahan pengisian data:</span>
@@ -51,7 +51,7 @@
                 
                 <div>
                     <label class="block text-sm font-extrabold text-stone-900">
-                        Foto / Gambar Produk <span class="text-red-500">*</span>
+                        Foto / Gambar Produk <span class="text-green-500">*</span>
                     </label>
                     <p class="text-xs text-stone-500 mt-0.5">Bisa upload file foto langsung atau masukkan tautan URL.</p>
                 </div>
@@ -78,7 +78,7 @@
 
                 <!-- Mode 1: File Input -->
                 <div x-show="uploadMode === 'file'" class="space-y-2">
-                    <div class="relative border-2 border-dashed border-stone-300 hover:border-mentari-red rounded-2xl p-4 text-center bg-white transition cursor-pointer group">
+                    <div class="relative border-2 border-dashed border-stone-300 hover:border-mentari-green rounded-2xl p-4 text-center bg-white transition cursor-pointer group">
                         <input 
                             type="file" 
                             name="gambar_file" 
@@ -88,9 +88,9 @@
                             class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                         >
                         <div class="space-y-1.5 py-3">
-                            <i data-lucide="upload-cloud" class="w-8 h-8 text-stone-400 group-hover:text-mentari-red mx-auto transition"></i>
+                            <i data-lucide="upload-cloud" class="w-8 h-8 text-stone-400 group-hover:text-mentari-green mx-auto transition"></i>
                             <div class="text-xs font-bold text-stone-800">
-                                <span class="text-mentari-red">Klik untuk upload file</span> atau drag & drop
+                                <span class="text-mentari-green">Klik untuk upload file</span> atau drag & drop
                             </div>
                             <p class="text-[11px] text-stone-400">PNG, JPG, WEBP (Maks. 5 MB)</p>
                         </div>
@@ -105,7 +105,7 @@
                         x-model="previewImage"
                         :disabled="uploadMode !== 'url'"
                         placeholder="https://contoh.com/foto-keripik.jpg" 
-                        class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 bg-white text-xs font-medium focus:outline-none focus:ring-2 focus:ring-mentari-red/30 focus:border-mentari-red"
+                        class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 bg-white text-xs font-medium focus:outline-none focus:ring-2 focus:ring-mentari-green/30 focus:border-mentari-green"
                     >
                     <p class="text-[11px] text-stone-400">Masukkan link URL gambar dari internet.</p>
                 </div>
@@ -145,7 +145,7 @@
                         id="is_active" 
                         value="1" 
                         @checked(old('is_active', $keripik?->is_active ?? true)) 
-                        class="w-5 h-5 rounded-lg border-stone-300 text-mentari-red focus:ring-mentari-red cursor-pointer"
+                        class="w-5 h-5 rounded-lg border-stone-300 text-mentari-green focus:ring-mentari-green cursor-pointer"
                     >
                 </div>
             </div>
@@ -158,7 +158,7 @@
             <!-- Nama Keripik -->
             <div>
                 <label for="nama" class="block text-sm font-extrabold text-stone-900 mb-1">
-                    Nama Keripik <span class="text-red-500">*</span>
+                    Nama Keripik <span class="text-green-500">*</span>
                 </label>
                 <input 
                     type="text" 
@@ -167,7 +167,7 @@
                     value="{{ old('nama', $keripik?->nama) }}" 
                     placeholder="Contoh: Keripik Apel Manalagi Super" 
                     required 
-                    class="w-full px-4 py-3 rounded-2xl border border-stone-300 bg-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-mentari-red/30 focus:border-mentari-red"
+                    class="w-full px-4 py-3 rounded-2xl border border-stone-300 bg-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-mentari-green/30 focus:border-mentari-green"
                 >
             </div>
 
@@ -176,18 +176,18 @@
                 <!-- Kategori -->
                 <div>
                     <label for="kategori" class="block text-sm font-extrabold text-stone-900 mb-1">
-                        Kategori Produk <span class="text-red-500">*</span>
+                        Kategori Produk <span class="text-green-500">*</span>
                     </label>
                     @php($selectedCategory = old('kategori', $keripik?->kategori))
                     <select
                         name="kategori"
                         id="kategori"
                         required
-                        class="w-full px-4 py-3 rounded-2xl border border-stone-300 bg-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-mentari-red/30 focus:border-mentari-red"
+                        class="w-full px-4 py-3 rounded-2xl border border-stone-300 bg-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-mentari-green/30 focus:border-mentari-green"
                     >
                         <option value="" disabled @selected(blank($selectedCategory))>Pilih kategori</option>
-                        @if ($selectedCategory && ! App\KategoriKeripik::tryFrom($selectedCategory))
-                            <option value="{{ $selectedCategory }}" selected>Kategori lama tidak valid — pilih kategori baru</option>
+                        @if ($selectedCategory && ! App\Enums\KategoriKeripik::tryFrom($selectedCategory))
+                            <option value="{{ $selectedCategory }}" selected>Kategori lama tidak valid ï¿½ pilih kategori baru</option>
                         @endif
                         @foreach ($categories as $category)
                             <option value="{{ $category->value }}" @selected($selectedCategory === $category->value)>{{ $category->label() }}</option>
@@ -198,7 +198,7 @@
                 <!-- Berat Bersih -->
                 <div>
                     <label for="berat" class="block text-sm font-extrabold text-stone-900 mb-1">
-                        Berat / Kemasan <span class="text-red-500">*</span>
+                        Berat / Kemasan <span class="text-green-500">*</span>
                     </label>
                     <input 
                         type="text" 
@@ -207,7 +207,7 @@
                         value="{{ old('berat', $keripik?->berat) }}" 
                         placeholder="Contoh: 100 gram / 250 gram" 
                         required 
-                        class="w-full px-4 py-3 rounded-2xl border border-stone-300 bg-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-mentari-red/30 focus:border-mentari-red"
+                        class="w-full px-4 py-3 rounded-2xl border border-stone-300 bg-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-mentari-green/30 focus:border-mentari-green"
                     >
                 </div>
 
@@ -218,7 +218,7 @@
                 <!-- Harga -->
                 <div>
                     <label for="harga" class="block text-sm font-extrabold text-stone-900 mb-1">
-                        Harga Satuan (Rp) <span class="text-red-500">*</span>
+                        Harga Satuan (Rp) <span class="text-green-500">*</span>
                     </label>
                     <div class="relative">
                         <span class="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-bold text-stone-400">Rp</span>
@@ -230,16 +230,16 @@
                             x-model="hargaValue" 
                             required 
                             placeholder="25000" 
-                            class="w-full pl-11 pr-4 py-3 rounded-2xl border border-stone-300 bg-white text-sm font-bold focus:outline-none focus:ring-2 focus:ring-mentari-red/30 focus:border-mentari-red"
+                            class="w-full pl-11 pr-4 py-3 rounded-2xl border border-stone-300 bg-white text-sm font-bold focus:outline-none focus:ring-2 focus:ring-mentari-green/30 focus:border-mentari-green"
                         >
                     </div>
-                    <span class="text-[11px] font-bold text-mentari-red mt-1 block" x-text="formatRupiahPreview(hargaValue)"></span>
+                    <span class="text-[11px] font-bold text-mentari-green mt-1 block" x-text="formatRupiahPreview(hargaValue)"></span>
                 </div>
 
                 <!-- Stok -->
                 <div>
                     <label for="stok" class="block text-sm font-extrabold text-stone-900 mb-1">
-                        Jumlah Stok Tersedia (Pcs) <span class="text-red-500">*</span>
+                        Jumlah Stok Tersedia (Pcs) <span class="text-green-500">*</span>
                     </label>
                     <input 
                         type="number" 
@@ -249,7 +249,7 @@
                         value="{{ old('stok', $keripik?->stok ?? 50) }}" 
                         required 
                         placeholder="50" 
-                        class="w-full px-4 py-3 rounded-2xl border border-stone-300 bg-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-mentari-red/30 focus:border-mentari-red"
+                        class="w-full px-4 py-3 rounded-2xl border border-stone-300 bg-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-mentari-green/30 focus:border-mentari-green"
                     >
                 </div>
 
@@ -265,7 +265,7 @@
                     id="deskripsi" 
                     rows="4" 
                     placeholder="Jelaskan keunggulan keripik, proses penggorengan vacuum, rasa manis alami, dll..." 
-                    class="w-full px-4 py-3 rounded-2xl border border-stone-300 bg-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-mentari-red/30 focus:border-mentari-red leading-relaxed"
+                    class="w-full px-4 py-3 rounded-2xl border border-stone-300 bg-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-mentari-green/30 focus:border-mentari-green leading-relaxed"
                 >{{ old('deskripsi', $keripik?->deskripsi) }}</textarea>
             </div>
 
@@ -273,7 +273,7 @@
             <div class="pt-4 border-t border-stone-200 flex items-center gap-3">
                 <button 
                     type="submit" 
-                    class="inline-flex items-center gap-2 bg-mentari-red hover:bg-mentari-red-dark text-white px-7 py-3.5 rounded-2xl font-bold text-sm shadow-md transition hover:-translate-y-0.5"
+                    class="inline-flex items-center gap-2 bg-mentari-green hover:bg-mentari-green-dark text-white px-7 py-3.5 rounded-2xl font-bold text-sm shadow-md transition hover:-translate-y-0.5"
                 >
                     <i data-lucide="save" class="w-4 h-4"></i>
                     <span>{{ $editing ? 'Simpan Perubahan' : 'Simpan Produk Keripik' }}</span>

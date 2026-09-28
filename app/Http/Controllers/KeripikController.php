@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\KategoriKeripik;
+use App\Enums\KategoriKeripik;
 use App\Models\Keripik;
 use Illuminate\View\View;
 

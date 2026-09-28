@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\KategoriKeripik;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreKeripikRequest;
 use App\Http\Requests\UpdateKeripikRequest;
-use App\KategoriKeripik;
 use App\Models\Keripik;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;

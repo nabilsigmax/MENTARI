@@ -6,6 +6,12 @@
         </div>
     </div>
 
+    @if (session('success'))
+        <div class="mb-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+            {{ session('success') }}
+        </div>
+    @endif
+
     @if ($sessions->isEmpty())
         <div class="bg-white border border-stone-200 rounded-2xl p-12 text-center shadow-xs">
             <i data-lucide="message-circle" class="w-16 h-16 text-stone-300 mx-auto mb-4"></i>
@@ -16,19 +22,21 @@
     @else
         <div class="grid grid-cols-1 gap-4">
             @foreach ($sessions as $session)
-                <a href="{{ route('admin.chat.show', $session) }}"
-                    class="block bg-white border border-stone-200 rounded-xl p-5 hover:border-mentari-red/40 hover:shadow-sm transition group">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-4">
+                <div
+                    class="flex items-center gap-2 bg-white border border-stone-200 rounded-xl hover:border-mentari-red/40 hover:shadow-sm transition group">
+
+                    <a href="{{ route('admin.chat.show', $session) }}"
+                        class="flex flex-1 min-w-0 items-center justify-between gap-4 p-5">
+                        <div class="flex items-center gap-4 min-w-0">
                             <div
                                 class="w-10 h-10 rounded-full bg-mentari-red/10 text-mentari-red flex items-center justify-center font-bold text-sm shrink-0">
                                 {{ strtoupper(substr($session->customer_name ?? 'P', 0, 1)) }}
                             </div>
-                            <div>
-                                <h4 class="font-bold text-stone-800 group-hover:text-mentari-red transition">
+                            <div class="min-w-0">
+                                <h4 class="font-bold text-stone-800 group-hover:text-mentari-red transition truncate">
                                     {{ $session->customer_name ?? 'Pengunjung' }}
                                 </h4>
-                                <p class="text-xs text-stone-500 mt-0.5">
+                                <p class="text-xs text-stone-500 mt-0.5 truncate">
                                     @if ($session->messages->first())
                                         {{ Str::limit($session->messages->first()->message, 60) }}
                                     @else
@@ -45,8 +53,18 @@
                             </span>
                             <p class="text-[11px] text-stone-400 mt-1">{{ $session->updated_at->diffForHumans() }}</p>
                         </div>
-                    </div>
-                </a>
+                    </a>
+
+                    <form method="POST" action="{{ route('admin.chat.destroy', $session) }}" class="pr-4 shrink-0"
+                        onsubmit="return confirm(@js('Hapus chat dengan ' . ($session->customer_name ?? 'Pengunjung') . ' beserta semua pesannya? Tindakan ini tidak bisa dibatalkan.'))">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" title="Hapus chat" aria-label="Hapus chat"
+                            class="w-9 h-9 rounded-lg flex items-center justify-center text-stone-400 hover:text-red-600 hover:bg-red-50 transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-red-500">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </form>
+                </div>
             @endforeach
         </div>
 

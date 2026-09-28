@@ -31,8 +31,8 @@
                             red: '#DC2626',
                             'red-dark': '#991B1B',
                             gold: '#F59E0B',
-                            green: '#10B981',
-                            'green-dark': '#059669',
+                            green: '#16A34A',
+                            'green-dark': '#15803D',
                             warm: '#FAFAF9'
                         }
                     },
@@ -48,6 +48,112 @@
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
+
+    @php
+        $chatIsAuth = auth()->check();
+        $chatAuthName = $chatIsAuth ? auth()->user()->name : '';
+    @endphp
+    <script>
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('chatWidget', () => ({
+                chatOpen: false,
+                chatMessages: [],
+                chatSessionId: null,
+                newMessage: '',
+                customerName: @json($chatAuthName),
+                nameSubmitted: @json($chatIsAuth),
+                loading: false,
+                pollTimer: null,
+
+                async initChat() {
+                    try {
+                        const res = await fetch('{{ route('chat.messages') }}');
+                        const data = await res.json();
+                        this.chatSessionId = data.session_id;
+                        this.chatMessages = data.messages;
+                        if (this.chatMessages.length > 0) {
+                            this.nameSubmitted = true;
+                        }
+                        this.$nextTick(() => this.scrollToBottom());
+                    } catch (e) {
+                        console.error('Chat init error:', e);
+                    }
+                },
+
+                startPolling() {
+                    this.pollTimer = setInterval(async () => {
+                        if (!this.chatOpen) return;
+                        try {
+                            const res = await fetch('{{ route('chat.messages') }}');
+                            const data = await res.json();
+                            if (data.messages.length !== this.chatMessages.length) {
+                                this.chatMessages = data.messages;
+                                this.$nextTick(() => this.scrollToBottom());
+                            }
+                        } catch (e) {}
+                    }, 5000);
+                },
+
+                stopPolling() {
+                    if (this.pollTimer) {
+                        clearInterval(this.pollTimer);
+                        this.pollTimer = null;
+                    }
+                },
+
+                async sendMessage() {
+                    if (!this.newMessage.trim()) return;
+                    this.loading = true;
+                    try {
+                        const res = await fetch('{{ route('chat.send') }}', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                'Accept': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                message: this.newMessage,
+                                customer_name: this.customerName || 'Pengunjung',
+                            }),
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                            this.chatMessages.push(data.message);
+                            this.newMessage = '';
+                            this.$nextTick(() => this.scrollToBottom());
+                        }
+                    } catch (e) {
+                        console.error('Send error:', e);
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+
+                submitName() {
+                    if (this.customerName.trim()) {
+                        this.nameSubmitted = true;
+                    }
+                },
+
+                scrollToBottom() {
+                    const el = this.$refs.chatBody;
+                    if (el) el.scrollTop = el.scrollHeight;
+                },
+
+                toggleChat() {
+                    this.chatOpen = !this.chatOpen;
+                    if (this.chatOpen) {
+                        this.initChat();
+                        this.startPolling();
+                        this.$nextTick(() => this.scrollToBottom());
+                    } else {
+                        this.stopPolling();
+                    }
+                },
+            }));
+        });
+    </script>
 
     <style>
         [x-cloak] {
@@ -200,14 +306,10 @@
             return 'Rp ' + Number(num).toLocaleString('id-ID');
         },
     
-        checkoutWhatsApp() {
+        buatPesanan() {
             if (this.cart.length === 0) return;
-            let text = '*HALO KERIPIK MENTARI, SAYA INGIN ORDER:*\n\n';
-            this.cart.forEach((item, i) => {
-                text += `${i + 1}. ${item.name} (${item.weight}) x ${item.qty} = ${this.formatRupiah(item.price * item.qty)}\n`;
-            });
-            text += `\n*Total: ${this.formatRupiah(this.cartTotal)}*\n\nMohon informasi ketersediaan stok & ongkir. Terima kasih!`;
-            window.open('https://wa.me/6281234567890?text=' + encodeURIComponent(text), '_blank');
+            const items = this.cart.map(item => ({ id: item.id, qty: item.qty }));
+            window.location.href = '{{ route('checkout.cart') }}?items=' + encodeURIComponent(JSON.stringify(items));
         },
     
         directWA(product) {
@@ -226,7 +328,7 @@
     }" x-init="initSlider()">
 
     <!-- TOP ANNOUNCEMENT BAR -->
-    <div class="bg-emerald-500 text-white text-xs sm:text-sm py-2 px-4 font-medium tracking-wide overflow-hidden">
+    <div class="bg-mentari-green text-white text-xs sm:text-sm py-2 px-4 font-medium tracking-wide overflow-hidden">
         <marquee behavior="scroll" direction="left" scrollamount="10">
             🛡️ Garansi Kerenyahan 100% & Ter sertifikasi Halal MUI: Kami Menjamin Keripik Apel Khas Malang Tetap
             Renyah,
@@ -236,125 +338,94 @@
 
     <!-- MAIN NAVBAR -->
     <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-stone-200/80 shadow-xs">
-        <div class="max-w-6xl mx-auto px-4 sm:px-6">
-            <div class="flex items-center justify-between h-20 gap-4">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6">
+        <div class="flex items-center justify-between h-20 gap-4">
 
-                <!-- Logo Brand -->
-                <a href="#" class="flex items-center gap-3 shrink-0">
-                    <img src="{{ asset('images/logo.png') }}" alt="Keripik Mentari Logo"
-                        class="h-12 sm:h-14 w-auto object-contain">
-                    <div class="hidden sm:block">
-                        <span
-                            class="text-xl font-black tracking-tight text-mentari-red block leading-tight">MENTARI</span>
-                        <span class="text-xs text-stone-500 font-semibold tracking-wide">Oleh-Oleh Khas Malang</span>
-                    </div>
+            <!-- Logo Brand + Slogan (Klik Logo kembali ke Beranda) -->
+            <a href="/" class="flex items-center gap-3 shrink-0 group" title="Kembali ke Beranda">
+                <img src="{{ asset('images/logo.png') }}" alt="Keripik Mentari Logo"
+                    class="h-12 sm:h-14 w-auto object-contain transition group-hover:scale-105">
+                
+                <div class="hidden sm:block border-l border-stone-200 pl-3">
+                    <span class="text-xs text-stone-500 font-bold tracking-wide block leading-tight">Oleh-Oleh Khas Malang</span>
+                </div>
+            </a>
+
+            <!-- Actions (Transaksional & Akun) -->
+            <div class="flex items-center gap-2 sm:gap-3 shrink-0">
+
+                <!-- Button Cek Pesanan -->
+                <a href="{{ route('orders.index') }}"
+                    class="flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-bold text-stone-700 bg-stone-100 hover:bg-stone-200 hover:text-mentari-red transition"
+                    title="Cek Status Pesanan">
+                    <i data-lucide="package-search" class="h-4 w-4 text-mentari-red"></i>
+                    <span class="hidden xs:inline">Cek Pesanan</span>
                 </a>
 
-                <!-- Nav Links -->
-                <nav class="hidden lg:flex items-center gap-6 text-sm font-semibold text-stone-600">
-                    <a href="#beranda" class="hover:text-mentari-red transition">Beranda</a>
-                    <a href="#keunggulan" class="hover:text-mentari-red transition">Keunggulan</a>
-                    <a href="#produk" class="hover:text-mentari-red transition">Produk</a>
-                    <a href="#tentang" class="hover:text-mentari-red transition">Tentang Kami</a>
-                    <a href="#kontak" class="hover:text-mentari-red transition">Kontak</a>
-                </nav>
+                <!-- Cart -->
+                <button @click="cartOpen = true"
+                    class="relative rounded-full p-2.5 text-stone-700 transition hover:bg-stone-100"
+                    title="Keranjang">
+                    <i data-lucide="shopping-bag" class="h-5 w-5"></i>
+                    <span x-show="cartCount > 0" x-text="cartCount"
+                        class="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-mentari-red text-[10px] font-bold text-white"></span>
+                </button>
 
-                <!-- Actions -->
-                <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
-
-                    <!-- Cart -->
-                    <button @click="cartOpen = true"
-                        class="relative rounded-full p-2.5 text-stone-700 transition hover:bg-stone-100"
-                        title="Keranjang">
-                        <i data-lucide="shopping-bag" class="h-5 w-5"></i>
-                        <span x-show="cartCount > 0" x-text="cartCount"
-                            class="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-mentari-red text-[10px] font-bold text-white"></span>
+                <!-- Account Dropdown -->
+                <div class="relative" x-data="{ open: false }" @click.outside="open = false">
+                    <button @click="open = !open"
+                        class="flex items-center gap-1.5 rounded-full p-2 sm:pl-2.5 sm:pr-3 text-stone-700 transition hover:bg-stone-100"
+                        title="Akun">
+                        <i data-lucide="user-circle" class="h-5 w-5"></i>
+                        @auth
+                            <span
+                                class="hidden lg:block text-xs font-bold max-w-[100px] truncate">{{ auth()->user()->name }}</span>
+                        @endauth
+                        <i data-lucide="chevron-down" class="h-3.5 w-3.5 hidden sm:block"></i>
                     </button>
 
+                    <div x-show="open" x-cloak x-transition
+                        class="absolute right-0 mt-2 w-56 rounded-xl border border-stone-200 bg-white shadow-lg overflow-hidden text-xs">
+                        @guest
+                            <div class="p-2 space-y-1">
+                                <a href="{{ route('login') }}"
+                                    class="block rounded-lg px-3 py-2 font-bold text-stone-700 hover:bg-stone-50">Masuk</a>
+                                <a href="{{ route('register') }}"
+                                    class="block rounded-lg bg-mentari-green px-3 py-2 font-bold text-white text-center hover:bg-mentari-green-dark">Daftar</a>
+                            </div>
+                        @endguest
 
-
-                    <!-- Account Dropdown -->
-                    <div class="relative" x-data="{ open: false }" @click.outside="open = false">
-                        <button @click="open = !open"
-                            class="flex items-center gap-1.5 rounded-full p-2 sm:pl-2.5 sm:pr-3 text-stone-700 transition hover:bg-stone-100"
-                            title="Akun">
-                            <i data-lucide="user-circle" class="h-5 w-5"></i>
-                            @auth
-                                <span
-                                    class="hidden lg:block text-xs font-bold max-w-[100px] truncate">{{ auth()->user()->name }}</span>
-                            @endauth
-                            <i data-lucide="chevron-down" class="h-3.5 w-3.5 hidden sm:block"></i>
-                        </button>
-
-                        <div x-show="open" x-cloak x-transition
-                            class="absolute right-0 mt-2 w-56 rounded-xl border border-stone-200 bg-white shadow-lg overflow-hidden text-xs">
-                            @guest
-                                <div class="p-2 space-y-1">
-                                    <a href="{{ route('login') }}"
-                                        class="block rounded-lg px-3 py-2 font-bold text-stone-700 hover:bg-stone-50">Login</a>
-                                    <a href="{{ route('register') }}"
-                                        class="block rounded-lg bg-mentari-red px-3 py-2 font-bold text-white text-center hover:bg-mentari-red-dark">Register</a>
-                                </div>
-                            @endguest
-
-                            @auth
-                                <div class="px-4 py-3 border-b border-stone-100">
-                                    <p class="font-bold text-stone-800">{{ auth()->user()->name }}</p>
-                                    <p class="text-stone-500 text-[11px]">{{ auth()->user()->email }}</p>
-                                </div>
-                                <div class="p-2 space-y-1">
-                                    @if (auth()->user()->isAdmin())
-                                        <a href="{{ route('admin.keripik.index') }}"
-                                            class="flex items-center gap-2 rounded-lg px-3 py-2 font-bold text-stone-700 hover:bg-stone-50">
-                                            <i data-lucide="shield-check" class="h-3.5 w-3.5 text-mentari-red"></i>
-                                            <span>Dashboard Admin</span>
-                                        </a>
-                                    @endif
-                                    <form method="POST" action="{{ route('logout') }}">
-                                        @csrf
-                                        <button type="submit"
-                                            class="w-full text-left flex items-center gap-2 rounded-lg px-3 py-2 font-bold text-stone-700 hover:bg-red-50 hover:text-mentari-red">
-                                            <i data-lucide="log-out" class="h-3.5 w-3.5"></i>
-                                            <span>Logout</span>
-                                        </button>
-                                    </form>
-                                </div>
-                            @endauth
-                        </div>
+                        @auth
+                            <div class="px-4 py-3 border-b border-stone-100">
+                                <p class="font-bold text-stone-800">{{ auth()->user()->name }}</p>
+                                <p class="text-stone-500 text-[11px]">{{ auth()->user()->email }}</p>
+                            </div>
+                            <div class="p-2 space-y-1">
+                                @if (auth()->user()->isAdmin())
+                                    <a href="{{ route('admin.keripik.index') }}"
+                                        class="flex items-center gap-2 rounded-lg px-3 py-2 font-bold text-stone-700 hover:bg-stone-50">
+                                        <i data-lucide="shield-check" class="h-3.5 w-3.5 text-mentari-red"></i>
+                                        <span>Dashboard Admin</span>
+                                    </a>
+                                @endif
+                                <form method="POST" action="{{ route('logout') }}">
+                                    @csrf
+                                    <button type="submit"
+                                        class="w-full text-left flex items-center gap-2 rounded-lg px-3 py-2 font-bold text-stone-700 hover:bg-red-50 hover:text-mentari-red">
+                                        <i data-lucide="log-out" class="h-3.5 w-3.5"></i>
+                                        <span>Logout</span>
+                                    </button>
+                                </form>
+                            </div>
+                        @endauth
                     </div>
-
-                    <!-- Mobile menu toggle -->
-                    <button @click="mobileMenu = !mobileMenu"
-                        class="rounded-lg p-2 text-stone-600 transition hover:bg-stone-100 lg:hidden" title="Buka menu">
-                        <i data-lucide="menu" class="h-6 w-6"></i>
-                    </button>
                 </div>
 
             </div>
-        </div>
 
-        <!-- Mobile Nav Menu -->
-        <div x-show="mobileMenu" @click.outside="mobileMenu = false"
-            class="space-y-3 border-t border-stone-100 bg-white px-4 py-3 text-sm lg:hidden" x-cloak>
-            <a @click="mobileMenu = false" href="#beranda"
-                class="block rounded-lg px-3 py-2 font-semibold text-stone-700 hover:bg-stone-50">Beranda</a>
-            <a @click="mobileMenu = false" href="#keunggulan"
-                class="block rounded-lg px-3 py-2 font-semibold text-stone-700 hover:bg-stone-50">Keunggulan</a>
-            <a @click="mobileMenu = false" href="#produk"
-                class="block rounded-lg px-3 py-2 font-semibold text-stone-700 hover:bg-stone-50">Produk</a>
-            <a @click="mobileMenu = false" href="#tentang"
-                class="block rounded-lg px-3 py-2 font-semibold text-stone-700 hover:bg-stone-50">Tentang Kami</a>
-            <a @click="mobileMenu = false" href="#kontak"
-                class="block rounded-lg px-3 py-2 font-semibold text-stone-700 hover:bg-stone-50">Lokasi & Kontak</a>
-            <a href="https://wa.me/6281234567890?text=Halo%20Keripik%20Mentari,%20saya%20tertarik%20untuk%20pesan%20oleh-oleh%20khas%20Malang."
-                target="_blank"
-                class="flex items-center justify-center gap-2 rounded-lg bg-mentari-red px-3 py-2.5 font-bold text-white">
-                <i data-lucide="message-circle" class="h-4 w-4"></i>
-                <span>Pesan di WA</span>
-            </a>
         </div>
-    </header>
-
+    </div>
+</header>
     <!-- AUTO-SLIDING HERO BANNER CAROUSEL -->
     <section id="beranda" class="relative max-w-6xl mx-auto px-4 sm:px-6 py-6 md:py-8" x-data="{
         currentSlide: 0,
@@ -404,7 +475,7 @@
                             </p>
                             <div class="pt-2">
                                 <a href="/produk/terlaris"
-                                    class="inline-flex items-center gap-2 bg-stone-900 hover:bg-black text-white px-6 py-3 rounded-full font-bold text-xs sm:text-sm shadow-md transition">
+                                    class="inline-flex items-center gap-2 bg-mentari-green hover:bg-mentari-green-dark text-white px-6 py-3 rounded-full font-bold text-xs sm:text-sm shadow-md transition">
                                     <i data-lucide="shopping-bag" class="w-4 h-4"></i>
                                     <span>Lihat Detail Keripik Terlaris</span>
                                 </a>
@@ -446,7 +517,7 @@
                             </p>
                             <div class="pt-2">
                                 <a href="/produk/keripik-bakso"
-                                    class="inline-flex items-center gap-2 bg-mentari-red hover:bg-red-700 text-white px-6 py-3 rounded-full font-bold text-xs sm:text-sm shadow-md transition">
+                                    class="inline-flex items-center gap-2 bg-mentari-green hover:bg-mentari-green-dark text-white px-6 py-3 rounded-full font-bold text-xs sm:text-sm shadow-md transition">
                                     <i data-lucide="arrow-right" class="w-4 h-4"></i>
                                     <span>Lihat Detail Keripik Bakso</span>
                                 </a>
@@ -494,13 +565,13 @@
                     <div class="grid grid-cols-1 md:grid-cols-12 gap-8 items-center w-full">
                         <div class="md:col-span-7 space-y-3 sm:space-y-4 text-left">
                             <span
-                                class="inline-block text-xs sm:text-sm font-bold text-emerald-800 uppercase tracking-wider bg-emerald-200/80 px-3 py-1 rounded-full">
+                                class="inline-block text-xs sm:text-sm font-bold text-mentari-green-dark uppercase tracking-wider bg-green-200/80 px-3 py-1 rounded-full">
                                 🍍 100% Buah Asli Vacuum Frying
                             </span>
                             <h2
-                                class="text-3xl sm:text-5xl md:text-6xl font-black text-emerald-950 tracking-tight leading-none">
+                                class="text-3xl sm:text-5xl md:text-6xl font-black text-green-950 tracking-tight leading-none">
                                 Keripik Mix <br>
-                                <span class="text-emerald-700">Buah Spesial</span>
+                                <span class="text-mentari-green-dark">Buah Spesial</span>
                             </h2>
                             <p class="text-stone-600 text-xs sm:text-sm pt-1 max-w-md leading-relaxed">
                                 Kombinasi aneka buah manis segar khas daerah dalam satu kemasan! Tanpa pemanis buatan,
@@ -508,7 +579,7 @@
                             </p>
                             <div class="pt-2">
                                 <a href="/produk/keripik-mix-buah"
-                                    class="inline-flex items-center gap-2 bg-emerald-700 hover:bg-emerald-800 text-white px-6 py-3 rounded-full font-bold text-xs sm:text-sm shadow-md transition">
+                                    class="inline-flex items-center gap-2 bg-mentari-green hover:bg-mentari-green-dark text-white px-6 py-3 rounded-full font-bold text-xs sm:text-sm shadow-md transition">
                                     <i data-lucide="eye" class="w-4 h-4"></i>
                                     <span>Lihat Detail Mix Buah</span>
                                 </a>
@@ -516,7 +587,7 @@
                         </div>
                         <div class="md:col-span-5 flex items-center justify-center">
                             <div
-                                class="relative bg-white/95 p-4 sm:p-6 rounded-3xl shadow-xl border border-emerald-300 max-w-sm text-center">
+                                class="relative bg-white/95 p-4 sm:p-6 rounded-3xl shadow-xl border border-green-300 max-w-sm text-center">
                                 <img src="{{ asset('images/logo.png') }}" alt="Keripik Mentari"
                                     class="h-16 w-auto object-contain mx-auto mb-2">
                                 <img src="/images/keripik-mix.jpeg" alt="Keripik Mix Buah"
@@ -555,13 +626,13 @@
 
     <!-- SECTION TITLE & SEARCH BAR -->
     <div class="max-w-6xl mx-auto px-4 sm:px-6 pt-6 text-center">
-        <h3 class="text-xl sm:text-2xl font-black text-stone-900 tracking-tight">Varian Best Seller Khas Malang</h3>
-        <p class="text-xs sm:text-sm text-stone-500 mt-1">Pilihan favorit wisatawan dan pembeli setia Keripik Mentari
+        <h3 class="text-xl sm:text-2xl font-black text-stone-900 tracking-tight">Temukan Keripik Favoritmu</h3>
+        <p class="text-xs sm:text-sm text-stone-500 mt-1">Pilih keripik favorit untuk menemani setiap momenmu.
         </p>
 
         <!-- Search Input di Bawah Header Katalogg -->
         <div class="mt-6 max-w-md mx-auto relative">
-            <input type="text" x-model="searchQuery" placeholder="Cari keripik favoritmu..."
+            <input type="text" x-model="searchQuery" placeholder="Cari produk keripik..."
                 class="w-full pl-10 pr-10 py-2.5 text-xs sm:text-sm rounded-full border border-stone-300 bg-white shadow-xs focus:outline-none focus:border-mentari-red focus:ring-1 focus:ring-mentari-red transition">
             <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-stone-400">
                 <i data-lucide="search" class="w-4 h-4"></i>
@@ -597,7 +668,7 @@
                     :class="selectedCategory === 'gurih' ? 'bg-mentari-green text-white' :
                         'text-stone-600 hover:text-stone-900'"
                     class="px-3.5 py-1.5 rounded-lg transition">
-                    Tempe & Gurih
+                    Gurih
                 </button>
 
             </div>
@@ -629,7 +700,7 @@
                             <div>
                                 <div class="flex items-center justify-between text-xs text-stone-500 mb-1">
                                     <span x-text="'Netto: ' + product.weight"></span>
-                                    <span class="text-emerald-700 font-bold">Ready Stock</span>
+                                    <span class="text-mentari-green-dark font-bold">Ready Stock</span>
                                 </div>
                                 <h3 class="font-bold text-stone-900 text-base" x-text="product.name"></h3>
                                 <p class="text-stone-600 text-xs mt-1 leading-relaxed" x-text="product.desc"></p>
@@ -641,13 +712,13 @@
 
                                 <div class="flex items-center gap-1.5">
                                     <button type="button" @click="addToCart(product)"
-                                        class="flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg border border-emerald-600 text-emerald-700 text-xs font-bold hover:bg-emerald-50 transition-colors"
+                                        class="flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg border border-mentari-green text-mentari-green-dark text-xs font-bold hover:bg-green-50 transition-colors"
                                         title="Tambah ke Keranjang">
                                         <i data-lucide="shopping-cart" class="w-3.5 h-3.5"></i>
                                         <span>Keranjang</span>
                                     </button>
                                     <a :href="'/keripik/' + product.id"
-                                        class="flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors"
+                                        class="flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg bg-mentari-green hover:bg-mentari-green-dark text-white text-xs font-bold transition-colors"
                                         title="Lihat detail produk">
                                         <span>Detail</span>
                                         <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
@@ -699,7 +770,7 @@
 
                 <div class="bg-stone-50 p-6 rounded-2xl border border-stone-200/80 shadow-xs">
                     <div
-                        class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center mb-4 font-bold">
+                        class="w-10 h-10 rounded-xl bg-green-100 text-mentari-green-dark flex items-center justify-center mb-4 font-bold">
                         <i data-lucide="shield-check" class="w-5 h-5"></i>
                     </div>
                     <h3 class="font-bold text-stone-900 text-base mb-1">Kemasan Aman & Tahan Lama</h3>
@@ -727,15 +798,15 @@
                     </p>
                     <div class="space-y-2 text-xs text-stone-700 font-medium">
                         <div class="flex items-center gap-2">
-                            <i data-lucide="check" class="w-4 h-4 text-emerald-600"></i>
+                            <i data-lucide="check" class="w-4 h-4 text-mentari-green"></i>
                             <span>Bahan 100% buah asli tanpa pemanis buatan</span>
                         </div>
                         <div class="flex items-center gap-2">
-                            <i data-lucide="check" class="w-4 h-4 text-emerald-600"></i>
+                            <i data-lucide="check" class="w-4 h-4 text-mentari-green"></i>
                             <span>Pengiriman aman ke seluruh wilayah Kota Malang</span>
                         </div>
                         <div class="flex items-center gap-2">
-                            <i data-lucide="check" class="w-4 h-4 text-emerald-600"></i>
+                            <i data-lucide="check" class="w-4 h-4 text-mentari-green"></i>
                             <span>Melayani pemesanan eceran, hampers, & partai besar</span>
                         </div>
                     </div>
@@ -859,9 +930,9 @@
                         <span class="font-medium text-stone-600">Total:</span>
                         <span class="font-bold text-base text-mentari-red" x-text="formatRupiah(cartTotal)"></span>
                     </div>
-                    <button @click="checkoutWhatsApp()"
-                        class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-bold text-xs transition">
-                        Kirim Pesanan ke WhatsApp
+                    <button @click="buatPesanan()"
+                        class="w-full bg-mentari-green hover:bg-mentari-green-dark text-white py-3 rounded-xl font-bold text-xs transition">
+                        Buat Pesanan
                     </button>
                 </div>
 
@@ -871,229 +942,160 @@
 
     <!-- CLEAN FOOTER -->
     <!-- ENHANCED FOOTER -->
-    <footer class="bg-stone-900 text-stone-300 pt-14 pb-6 mt-4">
-        <div class="max-w-6xl mx-auto px-4 sm:px-6">
+    <footer class="bg-stone-950 text-stone-300 pt-16 pb-8 border-t border-stone-800/80 font-sans">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6">
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 pb-10 border-b border-stone-700/60">
+        <!-- Main Footer Links Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-10 py-12 border-b border-stone-800/80">
 
-                <!-- Brand -->
-                <div class="space-y-4 lg:col-span-1">
-                    <a href="#" class="flex items-center gap-3">
-                        <img src="{{ asset('images/logo.png') }}" alt="Keripik Mentari Logo"
-                            class="h-11 w-auto object-contain bg-white rounded-lg p-1">
-                        <div>
-                            <span
-                                class="text-lg font-black tracking-tight text-white block leading-tight">MENTARI</span>
-                            <span class="text-[11px] text-stone-400 font-semibold tracking-wide">Oleh-Oleh Khas
-                                Malang</span>
-                        </div>
-                    </a>
-                    <p class="text-xs leading-relaxed text-stone-400">
-                        Produsen keripik buah & tempe asli khas Malang. Renyah alami, tanpa pengawet, diproses dengan
-                        teknologi vacuum frying modern.
-                    </p>
-                    <div class="flex items-center gap-2 pt-1">
-                        <a href="https://wa.me/6281234567890" target="_blank" rel="noopener noreferrer"
-                            class="w-9 h-9 rounded-full bg-stone-800 hover:bg-mentari-red flex items-center justify-center transition"
-                            title="WhatsApp">
-                            <i data-lucide="message-circle" class="w-4 h-4"></i>
-                        </a>
-                        <a href="#"
-                            class="w-9 h-9 rounded-full bg-stone-800 hover:bg-mentari-red flex items-center justify-center transition"
-                            title="Instagram">
-                            <i data-lucide="instagram" class="w-4 h-4"></i>
-                        </a>
-                        <a href="#"
-                            class="w-9 h-9 rounded-full bg-stone-800 hover:bg-mentari-red flex items-center justify-center transition"
-                            title="Facebook">
-                            <i data-lucide="facebook" class="w-4 h-4"></i>
-                        </a>
-                        <a href="#"
-                            class="w-9 h-9 rounded-full bg-stone-800 hover:bg-mentari-red flex items-center justify-center transition"
-                            title="TikTok">
-                            <i data-lucide="music-2" class="w-4 h-4"></i>
-                        </a>
+            <!-- Brand Info & Corporate License (5 Columns) -->
+            <div class="md:col-span-5 space-y-5">
+                <a href="#" class="inline-flex items-center gap-3 group">
+                    <img src="{{ asset('images/logo.png') }}" alt="Keripik Mentari Logo"
+                        class="h-12 w-auto object-contain bg-white rounded-xl p-1.5 shadow-sm transition group-hover:scale-105">
+                    <div>
+                        <span class="text-xl font-black tracking-tight text-white block leading-none">MENTARI</span>
+                        <span class="text-[11px] text-stone-400 font-medium tracking-widest uppercase mt-1 block">Oleh-Oleh Khas Malang</span>
                     </div>
+                </a>
+
+                <p class="text-xs leading-relaxed text-stone-400 max-w-sm">
+                    Produsen kuliner dan buah khas Malang terpercaya. Memadukan bahan alam pilihan dengan teknologi penggorengan hampa udara (*vacuum frying*) untuk cita rasa alami nan renyah.
+                </p>
+
+                <!-- Corporate Info Card (UD. Mentari Jaya Abadi) -->
+                <div class="p-3.5 rounded-xl bg-stone-900/80 border border-stone-800 flex items-center justify-between gap-4 max-w-sm">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-lg bg-stone-800 flex items-center justify-center shrink-0">
+                            <i data-lucide="building-2" class="w-4 h-4 text-stone-300"></i>
+                        </div>
+                        <div>
+                            <span class="text-xs font-bold text-stone-200 block">UD. MENTARI JAYA ABADI</span>
+                        </div>
+                    </div>
+                    <span class="text-[10px] px-2 py-0.5 rounded-full bg-stone-800 text-stone-400 font-medium shrink-0">Malang, Jatim</span>
                 </div>
 
-                <!-- Navigasi -->
-                <div class="space-y-3">
-                    <h4 class="text-white font-bold text-sm">Navigasi</h4>
-                    <ul class="space-y-2 text-xs">
-                        <li><a href="#beranda" class="hover:text-mentari-red transition">Beranda</a></li>
-                        <li><a href="#keunggulan" class="hover:text-mentari-red transition">Keunggulan</a></li>
-                        <li><a href="#produk" class="hover:text-mentari-red transition">Produk</a></li>
-                        <li><a href="#tentang" class="hover:text-mentari-red transition">Tentang Kami</a></li>
-                        <li><a href="#kontak" class="hover:text-mentari-red transition">Outlet & Kontak</a></li>
-                    </ul>
-                </div>
+                <!-- Social Media Links (SVG High-Quality) -->
+                <div class="flex items-center gap-2 pt-1">
+                    <!-- WhatsApp -->
+                    <a href="https://wa.me/6281234567890" target="_blank" rel="noopener noreferrer"
+                        class="w-9 h-9 rounded-lg bg-stone-900 hover:bg-mentari-red hover:text-white border border-stone-800 flex items-center justify-center text-stone-400 transition"
+                        title="WhatsApp">
+                        <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                            <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
+                        </svg>
+                    </a>
 
-                <!-- Kategori Produk -->
-                <div class="space-y-3">
-                    <h4 class="text-white font-bold text-sm">Kategori Produk</h4>
-                    <ul class="space-y-2 text-xs">
-                        <li><a href="#produk" class="hover:text-mentari-red transition">Keripik Buah</a></li>
-                        <li><a href="#produk" class="hover:text-mentari-red transition">Tempe & Gurih</a></li>
-                        <li><a href="#produk" class="hover:text-mentari-red transition">Paket Bundling & Hampers</a>
-                        </li>
-                        <li><a href="/produk/keripik-bakso" class="hover:text-mentari-red transition">Keripik
-                                Bakso</a></li>
-                    </ul>
-                </div>
+                    <!-- Instagram -->
+                    <a href="https://instagram.com/keripikmentari" target="_blank" rel="noopener noreferrer"
+                        class="w-9 h-9 rounded-lg bg-stone-900 hover:bg-mentari-red hover:text-white border border-stone-800 flex items-center justify-center text-stone-400 transition"
+                        title="Instagram">
+                        <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                            <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                        </svg>
+                    </a>
 
-                <!-- Kontak -->
-                <div class="space-y-3">
-                    <h4 class="text-white font-bold text-sm">Hubungi Kami</h4>
-                    <ul class="space-y-3 text-xs">
-                        <li class="flex items-start gap-2">
-                            <i data-lucide="map-pin" class="w-4 h-4 shrink-0 text-mentari-red mt-0.5"></i>
-                            <span>Malang & Batu, Jawa Timur, Indonesia</span>
-                        </li>
-                        <li class="flex items-start gap-2">
-                            <i data-lucide="phone" class="w-4 h-4 shrink-0 text-mentari-red mt-0.5"></i>
-                            <a href="https://wa.me/6281234567890" target="_blank" rel="noopener noreferrer"
-                                class="hover:text-mentari-red transition">+62 812-3456-7890</a>
-                        </li>
-                        <li class="flex items-start gap-2">
-                            <i data-lucide="mail" class="w-4 h-4 shrink-0 text-mentari-red mt-0.5"></i>
-                            <span>halo@keripikmentari.id</span>
-                        </li>
-                        <li class="flex items-start gap-2">
-                            <i data-lucide="clock" class="w-4 h-4 shrink-0 text-mentari-red mt-0.5"></i>
-                            <span>Setiap Hari, 08.00 - 20.00 WIB</span>
-                        </li>
-                    </ul>
-                </div>
+                    <!-- TikTok -->
+                    <a href="https://tiktok.com/@keripikmentari" target="_blank" rel="noopener noreferrer"
+                        class="w-9 h-9 rounded-lg bg-stone-900 hover:bg-mentari-red hover:text-white border border-stone-800 flex items-center justify-center text-stone-400 transition"
+                        title="TikTok">
+                        <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                            <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/>
+                        </svg>
+                    </a>
 
+                    <!-- X (Twitter) -->
+                    <a href="https://x.com/keripikmentari" target="_blank" rel="noopener noreferrer"
+                        class="w-9 h-9 rounded-lg bg-stone-900 hover:bg-mentari-red hover:text-white border border-stone-800 flex items-center justify-center text-stone-400 transition"
+                        title="X (Twitter)">
+                        <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                        </svg>
+                    </a>
+                </div>
             </div>
 
-            <!-- Bottom Bar -->
-            <div
-                class="pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-stone-500 text-center sm:text-left">
-                <p>&copy; {{ date('Y') }} <strong class="text-stone-300">Keripik Mentari Malang</strong>. Seluruh
-                    Hak Cipta Dilindungi.</p>
-                <div class="flex items-center gap-4">
-                    <span class="flex items-center gap-1.5">
-                        <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-500"></i>
-                        Halal MUI Certified
-                    </span>
-                    @auth
-                        @if (auth()->user()->isAdmin())
-                            <a href="{{ route('admin.keripik.index') }}"
-                                class="inline-flex items-center gap-1.5 rounded-lg bg-stone-800 px-3 py-1.5 font-bold text-stone-200 transition hover:bg-stone-700">
-                                <i data-lucide="shield-check" class="h-3.5 w-3.5 text-mentari-red"></i>
-                                <span>Dashboard Admin</span>
-                            </a>
-                        @endif
-                    @endauth
-                </div>
+            <!-- Navigation Links (2 Columns) -->
+            <div class="md:col-span-2 space-y-4">
+                <h4 class="text-xs font-bold uppercase tracking-wider text-stone-100">Jelajah</h4>
+                <ul class="space-y-2.5 text-xs">
+                    <li><a href="#beranda" class="text-stone-400 hover:text-white transition">Beranda</a></li>
+                    <li><a href="#keunggulan" class="text-stone-400 hover:text-white transition">Keunggulan</a></li>
+                    <li><a href="#produk" class="text-stone-400 hover:text-white transition">Katalog Produk</a></li>
+                    <li><a href="#tentang" class="text-stone-400 hover:text-white transition">Tentang Kami</a></li>
+                    <li><a href="#kontak" class="text-stone-400 hover:text-white transition">Lokasi Outlet</a></li>
+                </ul>
+            </div>
+
+            <!-- Product Categories (2 Columns) -->
+            <div class="md:col-span-2 space-y-4">
+                <h4 class="text-xs font-bold uppercase tracking-wider text-stone-100">Kategori</h4>
+                <ul class="space-y-2.5 text-xs">
+                    <li><a href="#produk" class="text-stone-400 hover:text-white transition">Keripik Buah Asli</a></li>
+                    <li><a href="#produk" class="text-stone-400 hover:text-white transition">Keripik Tempe Khas</a></li>
+                    <li><a href="#produk" class="text-stone-400 hover:text-white transition">Olahan Bakso Malang</a></li>
+                    <li><a href="#produk" class="text-stone-400 hover:text-white transition">Hampers & Paket Hemat</a></li>
+                </ul>
+            </div>
+
+            <!-- Contact & Operating Hours (3 Columns) -->
+            <div class="md:col-span-3 space-y-4">
+                <h4 class="text-xs font-bold uppercase tracking-wider text-stone-100">Pusat Informasi</h4>
+                <ul class="space-y-3 text-xs">
+                    <li class="flex items-start gap-2.5 text-stone-400">
+                        <i data-lucide="map-pin" class="w-4 h-4 shrink-0 text-mentari-red mt-0.5"></i>
+                        <span class="leading-relaxed">Jl. Raya Malang - Batu, Jawa Timur, Indonesia</span>
+                    </li>
+                    <li class="flex items-center gap-2.5">
+                        <i data-lucide="phone" class="w-4 h-4 shrink-0 text-mentari-red"></i>
+                        <a href="https://wa.me/6281234567890" target="_blank" rel="noopener noreferrer"
+                            class="text-stone-400 hover:text-white transition font-medium">+62 812-3456-7890</a>
+                    </li>
+                    <li class="flex items-center gap-2.5 text-stone-400">
+                        <i data-lucide="mail" class="w-4 h-4 shrink-0 text-mentari-red"></i>
+                        <span>mentarioleholeh@gmail.com</span>
+                    </li>
+                    <li class="flex items-center gap-2.5 text-stone-400">
+                        <i data-lucide="clock" class="w-4 h-4 shrink-0 text-mentari-red"></i>
+                        <span>Senin - Minggu: 08.00 - 20.00 WIB</span>
+                    </li>
+                </ul>
             </div>
 
         </div>
-    </footer>
 
+        <!-- Corporate Bottom Bar -->
+        <div class="pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-stone-500">
+            <div class="flex flex-wrap items-center justify-center md:justify-start gap-x-6 gap-y-2">
+                <p>&copy; {{ date('Y') }} <strong class="text-stone-300 font-semibold">UD. Mentari Jaya Abadi</strong>. All rights reserved.</p>
+            </div>
+
+            <div class="flex items-center gap-6">
+                <div class="flex items-center gap-1.5 text-stone-400">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span class="text-[11px] font-medium">Layanan Online Aktif</span>
+                </div>
+
+                @auth
+                    @if (auth()->user()->isAdmin())
+                        <a href="{{ route('admin.keripik.index') }}"
+                            class="inline-flex items-center gap-1.5 rounded-lg bg-stone-900 border border-stone-800 px-3 py-1.5 font-semibold text-stone-300 transition hover:bg-stone-800 hover:text-white">
+                            <i data-lucide="shield-check" class="h-3.5 w-3.5 text-mentari-red"></i>
+                            <span>Admin Portal</span>
+                        </a>
+                    @endif
+                @endauth
+            </div>
+        </div>
+
+    </div>
+</footer>
     <!-- FLOATING CHAT WIDGET -->
-    <div x-data="{
-        chatOpen: false,
-        chatMessages: [],
-        chatSessionId: null,
-        newMessage: '',
-        customerName: '',
-        nameSubmitted: false,
-        loading: false,
-        pollTimer: null,
-    
-        async initChat() {
-            // Try to load existing session messages
-            try {
-                const res = await fetch('{{ route('chat.messages') }}');
-                const data = await res.json();
-                this.chatSessionId = data.session_id;
-                this.chatMessages = data.messages;
-                if (this.chatMessages.length > 0) {
-                    this.nameSubmitted = true;
-                }
-                this.$nextTick(() => this.scrollToBottom());
-            } catch (e) {
-                console.error('Chat init error:', e);
-            }
-        },
-    
-        startPolling() {
-            this.pollTimer = setInterval(async () => {
-                if (!this.chatOpen) return;
-                try {
-                    const res = await fetch('{{ route('chat.messages') }}');
-                    const data = await res.json();
-                    if (data.messages.length !== this.chatMessages.length) {
-                        this.chatMessages = data.messages;
-                        this.$nextTick(() => this.scrollToBottom());
-                    }
-                } catch (e) {}
-            }, 5000);
-        },
-    
-        stopPolling() {
-            if (this.pollTimer) {
-                clearInterval(this.pollTimer);
-                this.pollTimer = null;
-            }
-        },
-    
-        async sendMessage() {
-            if (!this.newMessage.trim()) return;
-            this.loading = true;
-            try {
-                const res = await fetch('{{ route('chat.send') }}', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                        'Accept': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        message: this.newMessage,
-                        customer_name: this.customerName || 'Pengunjung',
-                    }),
-                });
-                const data = await res.json();
-                if (data.success) {
-                    this.chatMessages.push(data.message);
-                    this.newMessage = '';
-                    this.$nextTick(() => this.scrollToBottom());
-                }
-            } catch (e) {
-                console.error('Send error:', e);
-            } finally {
-                this.loading = false;
-            }
-        },
-    
-        submitName() {
-            if (this.customerName.trim()) {
-                this.nameSubmitted = true;
-            }
-        },
-    
-        scrollToBottom() {
-            const el = this.$refs.chatBody;
-            if (el) el.scrollTop = el.scrollHeight;
-        },
-    
-        toggleChat() {
-            this.chatOpen = !this.chatOpen;
-            if (this.chatOpen) {
-                this.initChat();
-                this.startPolling();
-                this.$nextTick(() => this.scrollToBottom());
-            } else {
-                this.stopPolling();
-            }
-        }
-    }" class="fixed bottom-6 right-6 z-50">
+    <div x-data="chatWidget" class="fixed bottom-6 right-6 z-50">
         <!-- Chat Button -->
         <button x-show="!chatOpen" @click="toggleChat()"
-            class="w-14 h-14 rounded-full bg-mentari-red hover:bg-red-700 text-white shadow-lg flex items-center justify-center transition-all hover:scale-110"
+            class="w-14 h-14 rounded-full bg-mentari-green hover:bg-mentari-green-dark text-white shadow-lg flex items-center justify-center transition-all hover:scale-110"
             title="Chat dengan kami">
             <i data-lucide="message-circle" class="w-6 h-6"></i>
         </button>
@@ -1108,14 +1110,14 @@
             class="w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-stone-200 overflow-hidden flex flex-col"
             style="height: 480px;">
             <!-- Header -->
-            <div class="bg-mentari-red text-white px-5 py-4 flex items-center justify-between shrink-0">
+            <div class="bg-mentari-green text-white px-5 py-4 flex items-center justify-between shrink-0">
                 <div class="flex items-center gap-3">
                     <div class="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center">
                         <i data-lucide="headphones" class="w-5 h-5"></i>
                     </div>
                     <div>
                         <h4 class="font-bold text-sm">Chat Keripik Mentari</h4>
-                        <p class="text-[11px] text-red-100">Kami siap membantu Anda</p>
+                        <p class="text-[11px] text-green-100">Kami siap membantu Anda</p>
                     </div>
                 </div>
                 <button @click="toggleChat()" class="p-1 hover:bg-white/20 rounded-lg transition">
@@ -1125,28 +1127,15 @@
 
             <!-- Name Input (shown first time) -->
             <template x-if="!nameSubmitted">
-                <div class="flex-1 flex items-center justify-center p-6">
-                    <div class="text-center space-y-4 w-full">
-                        <div
-                            class="w-16 h-16 rounded-full bg-red-50 text-mentari-red flex items-center justify-center mx-auto">
-                            <i data-lucide="user" class="w-8 h-8"></i>
-                        </div>
-                        <div>
-                            <h4 class="font-bold text-stone-800">Selamat datang!</h4>
-                            <p class="text-xs text-stone-500 mt-1">Masukkan nama Anda untuk mulai chat.</p>
-                        </div>
-                        <div>
-                            <input type="text" x-model="customerName" @keydown.enter="submitName()"
-                                placeholder="Nama Anda..."
-                                class="w-full px-4 py-2.5 rounded-xl border border-stone-200 text-sm focus:outline-none focus:ring-2 focus:ring-mentari-red/30 focus:border-mentari-red">
-                        </div>
-                        <button @click="submitName()" :disabled="!customerName.trim()"
-                            class="w-full bg-mentari-red hover:bg-red-700 disabled:bg-stone-300 text-white px-4 py-2.5 rounded-xl text-sm font-bold transition">
-                            Mulai Chat
-                        </button>
-                    </div>
+                <div class="p-4 flex flex-col gap-2">
+                    <input type="text" x-model="customerName" placeholder="Nama Anda"
+                        class="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-mentari-red" />
+                    <button @click="submitName()" :disabled="!customerName.trim()"
+                        class="bg-mentari-green hover:bg-mentari-green-dark text-white px-4 py-2 rounded">Mulai
+                        Chat</button>
                 </div>
             </template>
+
 
             <!-- Chat Messages -->
             <template x-if="nameSubmitted">
@@ -1166,11 +1155,11 @@
                             <div :class="msg.is_admin ? 'flex justify-start' : 'flex justify-end'">
                                 <div :class="msg.is_admin ?
                                     'bg-stone-100 text-stone-800 rounded-2xl rounded-bl-sm' :
-                                    'bg-mentari-red text-white rounded-2xl rounded-br-sm'"
+                                    'bg-mentari-green text-white rounded-2xl rounded-br-sm'"
                                     class="px-4 py-2.5 max-w-[80%] shadow-xs">
                                     <p class="text-xs leading-relaxed" x-text="msg.message"></p>
                                     <p class="text-[10px] mt-1"
-                                        :class="msg.is_admin ? 'text-stone-400' : 'text-red-200'"
+                                        :class="msg.is_admin ? 'text-stone-400' : 'text-white-200'"
                                         x-text="(msg.is_admin ? 'Admin' : 'Anda') + ' · ' + msg.created_at"></p>
                                 </div>
                             </div>
@@ -1184,7 +1173,7 @@
                                 placeholder="Ketik pesan..." :disabled="loading"
                                 class="flex-1 px-4 py-2.5 rounded-xl border border-stone-200 text-xs focus:outline-none focus:ring-2 focus:ring-mentari-red/30 focus:border-mentari-red transition">
                             <button @click="sendMessage()" :disabled="loading || !newMessage.trim()"
-                                class="w-10 h-10 rounded-xl bg-mentari-red hover:bg-red-700 disabled:bg-stone-300 text-white flex items-center justify-center transition shrink-0">
+                                class="w-10 h-10 rounded-xl bg-mentari-red hover:bg-mentari-red-dark disabled:bg-stone-300 text-white flex items-center justify-center transition shrink-0">
                                 <i data-lucide="send" class="w-4 h-4"></i>
                             </button>
                         </div>

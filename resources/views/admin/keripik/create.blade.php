@@ -3,7 +3,7 @@
     <!-- Breadcrumb & Header -->
     <div class="mb-6">
         <nav class="flex items-center gap-2 text-xs font-semibold text-stone-500 mb-2">
-            <a href="{{ route('admin.keripik.index') }}" class="hover:text-mentari-red">Katalog Keripik</a>
+            <a href="{{ route('admin.keripik.index') }}" class="hover:text-mentari-green">Katalog Keripik</a>
             
         </nav>
         <h1 class="text-2xl sm:text-3xl font-black text-stone-900 tracking-tight">Tambah Produk Keripik Baru</h1>

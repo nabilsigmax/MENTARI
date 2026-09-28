@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests;
 
-use App\KategoriKeripik;
+use App\Enums\KategoriKeripik;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;

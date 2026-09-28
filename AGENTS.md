@@ -1,3 +1,15 @@
+# keripik-mentari — repository notes
+
+- Indonesian e-commerce site ("Keripik Mentari", Malang-style chips/souvenirs). All user-facing text, model names, route names, and order statuses are Indonesian — keep new user-facing strings Indonesian. Order statuses: `pending, dibayar, diproses, dikirim, selesai, batal`. Categories come from `App\Enums\KategoriKeripik` (string-backed: `Keripik Buah`, `Keripik Tempe & Gurih`, `Paket Bundling & Hampers`).
+- Frontend is plain Blade with **Tailwind CSS CDN (`cdn.tailwindcss.com`), Alpine 3 CDN, and Lucide CDN** loaded inside each view. No Blade template calls `@vite` — `npm run build`/`npm run dev` do NOT affect the rendered UI. Custom colors/theme are defined per page in an inline `tailwind.config` (e.g. `mentari-red`, `mentari-gold`). To change the frontend, edit the `.blade.php` files directly.
+- Guest-facing pages (`welcome`, `keripik/show`, `checkout/*`, `pesanan-saya/*`, `auth/*`) are standalone full HTML documents. Only admin pages use the Blade component layout `<x-layouts.admin title="...">` (`resources/views/components/layouts/admin.blade.php`).
+- Auth is hand-rolled email/password (no Breeze/Fortify/Livewire/Filament). `users.role` is a plain string (`admin` vs `customer`). The `admin` middleware alias (`EnsureUserIsAdmin`) guards all `admin.*` routes; login redirects admins to `admin.keripik.index`, others to `home`.
+- Customer chat is public (no auth): the welcome-page Alpine widget polls the JSON routes `chat.messages` / `chat.send`, tracking visitors via a `chat_session_id` session value. Reverb/Echo is installed but NOT wired (`BROADCAST_CONNECTION=log`); don't assume websockets — the app polls.
+- Dev DB is MySQL (Laragon): `DB_DATABASE=keripik_mentari`, `root`, no password; `.env.example` defaults to sqlite. Tests run against sqlite `:memory:` (phpunit.xml). Product images go to `storage/app/public/keripik` served via the `public/storage` symlink (re-run `php artisan storage:link` if those 404). Prices are integer rupiah — never store decimals.
+- Enum kategori ada di `App\Enums\KategoriKeripik` — jangan pakai `App\KategoriKeripik` (file lama di root `app/` sudah tidak ada).
+- Model convention is split: newer models `Keripik` / `User` use Laravel attribute-style `#[Fillable]` / `#[Hidden]` plus `casts()` method; older models `Pesanan`, `ChatSession`, `ChatMessage` use classic `protected $guarded` + `$casts`. Match the style of the file you touch.
+- Tests are feature tests only (`tests/Feature/KeripikCrudTest.php`, `AdminKeripikTest.php`, `Auth/AuthenticationTest.php`) using factories and `RefreshDatabase`. Verify with `php artisan test --compact --filter=...`, then run `vendor/bin/pint --dirty --format agent`.
+
 <laravel-boost-guidelines>
 === foundation rules ===
 
