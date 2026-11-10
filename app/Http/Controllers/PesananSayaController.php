@@ -25,4 +25,15 @@ class PesananSayaController extends Controller
             'pesanans' => $pesanans,
         ]);
     }
+
+    public function show(Pesanan $pesanan): View
+    {
+        abort_unless($pesanan->user_id === Auth::id(), 403);
+
+        $pesanan->load('keripik');
+
+        return view('pesanan-saya.show', [
+            'pesanan' => $pesanan,
+        ]);
+    }
 }

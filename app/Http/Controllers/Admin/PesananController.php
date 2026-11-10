@@ -44,13 +44,25 @@ class PesananController extends Controller
             'estimasi_tiba' => 'nullable|date|after_or_equal:tanggal_dikirim',
         ]);
 
-        $pesanan->update([
-            'status' => $request->status,
-            'nomor_resi' => $request->nomor_resi,
-            'tanggal_dikirim' => $request->tanggal_dikirim,
-            'tanggal_diterima' => $request->tanggal_diterima,
-            'estimasi_tiba' => $request->estimasi_tiba,
+        $data = $request->only([
+            'status',
+            'nomor_resi',
+            'tanggal_dikirim',
+            'tanggal_diterima',
+            'estimasi_tiba',
         ]);
+
+        $status = $data['status'] ?? $pesanan->status;
+
+        if ($status === 'selesai' && empty($data['tanggal_diterima'])) {
+            $data['tanggal_diterima'] = now()->toDateString();
+        }
+
+        if ($status === 'dikirim' && empty($data['tanggal_dikirim'])) {
+            $data['tanggal_dikirim'] = now()->toDateString();
+        }
+
+        $pesanan->update($data);
 
         return redirect()->back()->with('success', 'Status pesanan berhasil diperbarui.');
     }

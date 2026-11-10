@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Enums\KategoriKeripik;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreKeripikRequest;
 use App\Http\Requests\UpdateKeripikRequest;
+use App\Models\Kategori;
 use App\Models\Keripik;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -34,7 +34,7 @@ class KeripikController extends Controller
             $query->where('is_active', (bool) $request->input('status'));
         }
 
-        $categories = Keripik::select('kategori')->distinct()->pluck('kategori');
+        $categories = Kategori::orderBy('nama')->pluck('nama');
 
         return view('admin.keripik.index', [
             'keripiks' => $query->latest()->paginate(10)->withQueryString(),
@@ -47,7 +47,7 @@ class KeripikController extends Controller
 
     public function create(): View
     {
-        return view('admin.keripik.create', ['categories' => KategoriKeripik::cases()]);
+        return view('admin.keripik.create', ['categories' => Kategori::orderBy('nama')->pluck('nama')]);
     }
 
     public function store(StoreKeripikRequest $request): RedirectResponse
@@ -74,7 +74,7 @@ class KeripikController extends Controller
     {
         return view('admin.keripik.edit', [
             'keripik' => $keripik,
-            'categories' => KategoriKeripik::cases(),
+            'categories' => Kategori::orderBy('nama')->pluck('nama'),
         ]);
     }
 

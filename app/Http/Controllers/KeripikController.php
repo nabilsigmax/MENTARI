@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\KategoriKeripik;
+use App\Models\Kategori;
 use App\Models\Keripik;
 use Illuminate\View\View;
 
@@ -10,7 +10,9 @@ class KeripikController extends Controller
 {
     public function show(Keripik $keripik): View
     {
-        abort_unless($keripik->is_active && in_array($keripik->kategori, KategoriKeripik::values(), true), 404);
+        $kategoriValid = Kategori::where('nama', $keripik->kategori)->exists();
+
+        abort_unless($keripik->is_active && $kategoriValid, 404);
 
         return view('keripik.show', ['keripik' => $keripik]);
     }

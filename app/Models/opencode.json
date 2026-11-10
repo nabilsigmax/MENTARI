@@ -1,0 +1,22 @@
+{
+    "provider": {
+        "openai": {
+            "npm": "@ai-sdk/openai-compatible",
+            "options": {
+                "baseURL": "http://127.0.0.1:20128/v1",
+                "apiKey": "sk-86c28977baa56136-zt801m-a75a7df1"
+            },
+            "models": {
+                "oc/deepseek-v4.1-flash-free": {
+                    "name": "oc/deepseek-v4.1-flash-free",
+                    "modalities": {
+                        "input": ["text", "image"],
+                        "output": ["text"]
+                    }
+                }
+            }
+        }
+    },
+    "model": "openai/oc/deepseek-v4.1-flash-free",
+    "small_model": "openai/oc/deepseek-v4.1-flash-free"
+}

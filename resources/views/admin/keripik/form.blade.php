@@ -186,11 +186,11 @@
                         class="w-full px-4 py-3 rounded-2xl border border-stone-300 bg-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-mentari-green/30 focus:border-mentari-green"
                     >
                         <option value="" disabled @selected(blank($selectedCategory))>Pilih kategori</option>
-                        @if ($selectedCategory && ! App\Enums\KategoriKeripik::tryFrom($selectedCategory))
-                            <option value="{{ $selectedCategory }}" selected>Kategori lama tidak valid � pilih kategori baru</option>
+                        @if ($selectedCategory && ! $categories->contains($selectedCategory))
+                            <option value="{{ $selectedCategory }}" selected>Kategori lama tidak valid - pilih kategori baru</option>
                         @endif
                         @foreach ($categories as $category)
-                            <option value="{{ $category->value }}" @selected($selectedCategory === $category->value)>{{ $category->label() }}</option>
+                            <option value="{{ $category }}" @selected($selectedCategory === $category)>{{ $category }}</option>
                         @endforeach
                     </select>
                     <p class="mt-1 text-xs text-stone-500">Kategori menentukan tab produk di landing page.</p></div>

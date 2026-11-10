@@ -1,7 +1,7 @@
 <?php
 
-use App\Enums\KategoriKeripik;
 use App\Http\Controllers\Admin\ChatController as AdminChatController;
+use App\Http\Controllers\Admin\KategoriController as AdminKategoriController;
 use App\Http\Controllers\Admin\KeripikController as AdminKeripikController;
 use App\Http\Controllers\Admin\PesananController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
@@ -9,16 +9,19 @@ use App\Http\Controllers\ChatController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\KeripikController;
 use App\Http\Controllers\PesananSayaController;
+use App\Models\Kategori;
 use App\Models\Keripik;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
+    $categories = Kategori::orderBy('nama')->pluck('nama');
+
     $keripiks = Keripik::where('is_active', true)
-        ->whereIn('kategori', KategoriKeripik::values())
+        ->whereIn('kategori', $categories)
         ->latest()
         ->get();
 
-    return view('welcome', compact('keripiks'));
+    return view('welcome', compact('keripiks', 'categories'));
 })->name('home');
 
 Route::middleware('guest')->group(function (): void {
@@ -45,6 +48,7 @@ Route::middleware('auth')->group(function (): void {
 
     // Pesanan Saya Route (Pengganti Cek Pesanan)
     Route::get('/pesanan-saya', [PesananSayaController::class, 'index'])->name('orders.index');
+    Route::get('/pesanan-saya/{pesanan}', [PesananSayaController::class, 'show'])->name('orders.show');
 
     // Logout
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
@@ -54,6 +58,7 @@ Route::middleware('auth')->group(function (): void {
 Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(function (): void {
     Route::redirect('/', '/admin/keripik');
     Route::resource('keripik', AdminKeripikController::class);
+    Route::resource('kategori', AdminKategoriController::class)->except(['create', 'show']);
     Route::resource('pesanan', PesananController::class)->except(['create', 'store', 'destroy']);
 
     // Admin chat

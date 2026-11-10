@@ -20,9 +20,9 @@
                 <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Pending</option>
                 <option value="dibayar" {{ request('status') == 'dibayar' ? 'selected' : '' }}>Dibayar</option>
                 <option value="diproses" {{ request('status') == 'diproses' ? 'selected' : '' }}>Diproses</option>
-                <option value="dikirim" {{ request('status') == 'dikirim' ? 'selected' : '' }}>Dikirim</option>
-                <option value="selesai" {{ request('status') == 'selesai' ? 'selected' : '' }}>Selesai</option>
-                <option value="batal" {{ request('status') == 'batal' ? 'selected' : '' }}>Batal</option>
+                <option value="dikirim" {{ request('status') == 'dikirim' ? 'selected' : '' }}>Sedang Dikirim</option>
+                <option value="selesai" {{ request('status') == 'selesai' ? 'selected' : '' }}>Telah Diterima</option>
+                <option value="batal" {{ request('status') == 'batal' ? 'selected' : '' }}>Dibatalkan</option>
             </select>
             <button type="submit" class="bg-stone-900 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-black transition">Filter</button>
             @if(request('search') || request('status'))
@@ -70,15 +70,40 @@
                                         'batal' => 'bg-red-100 text-red-800',
                                     ];
                                     $color = $colors[$pesanan->status] ?? 'bg-stone-100 text-stone-800';
+                                    $label = [
+                                        'pending' => 'Pending',
+                                        'dibayar' => 'Dibayar',
+                                        'diproses' => 'Diproses',
+                                        'dikirim' => 'Sedang Dikirim',
+                                        'selesai' => 'Telah Diterima',
+                                        'batal' => 'Dibatalkan',
+                                    ][$pesanan->status] ?? $pesanan->status;
                                 @endphp
                                 <span class="px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider {{ $color }}">
-                                    {{ $pesanan->status }}
+                                    {{ $label }}
                                 </span>
                             </td>
                             <td class="px-6 py-4 text-right">
-                                <a href="{{ route('admin.pesanan.show', $pesanan->id) }}" class="inline-flex items-center gap-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 border border-stone-200 px-3 py-1.5 rounded-lg text-xs font-bold transition">
-                                    Detail
-                                </a>
+                                <div class="flex items-center justify-end gap-2">
+                                    <form action="{{ route('admin.pesanan.update', $pesanan->id) }}" method="POST" class="flex items-center gap-1.5">
+                                        @csrf
+                                        @method('PUT')
+                                        <select name="status" class="border border-stone-200 rounded-lg text-xs px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-mentari-red">
+                                            <option value="pending" {{ $pesanan->status == 'pending' ? 'selected' : '' }}>Pending</option>
+                                            <option value="dibayar" {{ $pesanan->status == 'dibayar' ? 'selected' : '' }}>Dibayar</option>
+                                            <option value="diproses" {{ $pesanan->status == 'diproses' ? 'selected' : '' }}>Diproses</option>
+                                            <option value="dikirim" {{ $pesanan->status == 'dikirim' ? 'selected' : '' }}>Sedang Dikirim</option>
+                                            <option value="selesai" {{ $pesanan->status == 'selesai' ? 'selected' : '' }}>Telah Diterima</option>
+                                            <option value="batal" {{ $pesanan->status == 'batal' ? 'selected' : '' }}>Dibatalkan</option>
+                                        </select>
+                                        <button type="submit" class="bg-mentari-red hover:bg-mentari-red-dark text-white px-2.5 py-1.5 rounded-lg text-xs font-bold transition">
+                                            Ubah
+                                        </button>
+                                    </form>
+                                    <a href="{{ route('admin.pesanan.show', $pesanan->id) }}" class="inline-flex items-center gap-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 border border-stone-200 px-3 py-1.5 rounded-lg text-xs font-bold transition">
+                                        Detail
+                                    </a>
+                                </div>
                             </td>
                         </tr>
                     @empty

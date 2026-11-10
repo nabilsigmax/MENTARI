@@ -72,11 +72,11 @@
                             </option>
                             <option value="diproses" {{ $pesanan->status == 'diproses' ? 'selected' : '' }}>Diproses
                             </option>
-                            <option value="dikirim" {{ $pesanan->status == 'dikirim' ? 'selected' : '' }}>Dikirim
+                            <option value="dikirim" {{ $pesanan->status == 'dikirim' ? 'selected' : '' }}>Sedang Dikirim
                             </option>
-                            <option value="selesai" {{ $pesanan->status == 'selesai' ? 'selected' : '' }}>Selesai
+                            <option value="selesai" {{ $pesanan->status == 'selesai' ? 'selected' : '' }}>Telah Diterima
                             </option>
-                            <option value="batal" {{ $pesanan->status == 'batal' ? 'selected' : '' }}>Batal</option>
+                            <option value="batal" {{ $pesanan->status == 'batal' ? 'selected' : '' }}>Dibatalkan</option>
                         </select>
                     </div>
 

@@ -141,22 +141,18 @@
                     :class="activeTab === 'semua' ? 'border-mentari-red text-mentari-red border-b-2' :
                         'border-transparent hover:text-mentari-red'"
                     class="whitespace-nowrap px-4 py-3 transition-colors">Semua</button>
-                <button @click="activeTab = 'pending'"
-                    :class="activeTab === 'pending' ? 'border-mentari-red text-mentari-red border-b-2' :
-                        'border-transparent hover:text-mentari-red'"
-                    class="whitespace-nowrap px-4 py-3 transition-colors">Belum Bayar</button>
                 <button @click="activeTab = 'diproses'"
                     :class="activeTab === 'diproses' ? 'border-mentari-red text-mentari-red border-b-2' :
                         'border-transparent hover:text-mentari-red'"
-                    class="whitespace-nowrap px-4 py-3 transition-colors">Dikemas</button>
+                    class="whitespace-nowrap px-4 py-3 transition-colors">Diproses</button>
                 <button @click="activeTab = 'dikirim'"
                     :class="activeTab === 'dikirim' ? 'border-mentari-red text-mentari-red border-b-2' :
                         'border-transparent hover:text-mentari-red'"
-                    class="whitespace-nowrap px-4 py-3 transition-colors">Dikirim</button>
+                    class="whitespace-nowrap px-4 py-3 transition-colors">Sedang Dikirim</button>
                 <button @click="activeTab = 'selesai'"
                     :class="activeTab === 'selesai' ? 'border-mentari-red text-mentari-red border-b-2' :
                         'border-transparent hover:text-mentari-red'"
-                    class="whitespace-nowrap px-4 py-3 transition-colors">Selesai</button>
+                    class="whitespace-nowrap px-4 py-3 transition-colors">Telah Diterima</button>
                 <button @click="activeTab = 'batal'"
                     :class="activeTab === 'batal' ? 'border-mentari-red text-mentari-red border-b-2' :
                         'border-transparent hover:text-mentari-red'"
@@ -170,7 +166,16 @@
         <div class="space-y-4">
             {{-- Loop untuk setiap pesanan yang ditarik dari database --}}
             @forelse ($pesanans ?? [] as $pesanan)
-                <div x-show="activeTab === 'semua' || activeTab === '{{ strtolower($pesanan->status) }}'"
+                @php
+                    $tabPesanan = match ($pesanan->status) {
+                        'pending', 'dibayar', 'diproses' => 'diproses',
+                        'dikirim' => 'dikirim',
+                        'selesai' => 'selesai',
+                        'batal' => 'batal',
+                        default => strtolower($pesanan->status),
+                    };
+                @endphp
+                <div x-show="activeTab === 'semua' || activeTab === '{{ $tabPesanan }}'"
                     x-transition:enter="transition ease-out duration-200"
                     x-transition:enter-start="opacity-0 translate-y-2"
                     x-transition:enter-end="opacity-100 translate-y-0" class="rounded-sm bg-white p-4 shadow-sm"
@@ -190,9 +195,9 @@
                             @elseif($pesanan->status === 'diproses')
                                 Dikemas
                             @elseif($pesanan->status === 'dikirim')
-                                Dikirim
+                                Sedang Dikirim
                             @elseif($pesanan->status === 'selesai')
-                                Selesai
+                                Telah Diterima
                             @elseif($pesanan->status === 'batal')
                                 Dibatalkan
                             @else
@@ -202,7 +207,7 @@
                     </div>
 
                     <!-- Body Card: Info Produk -->
-                    <div class="flex items-start gap-4 py-4 cursor-pointer" onclick="window.location.href='#'">
+                    <div class="flex items-start gap-4 py-4 cursor-pointer" onclick="window.location.href='{{ route('orders.show', $pesanan->id) }}'">
                         <img src="{{ $pesanan->keripik->gambar_url ?? 'https://via.placeholder.com/80' }}"
                             alt="{{ $pesanan->keripik->nama ?? 'Produk' }}"
                             class="h-20 w-20 rounded border border-stone-200 object-cover">

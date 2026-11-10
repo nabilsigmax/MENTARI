@@ -204,11 +204,7 @@
                     fn($k) => [
                         'id' => $k->id,
                         'name' => $k->nama,
-                        'category' => match ($k->kategori) {
-                            'Keripik Buah' => 'buah',
-                            'Keripik Tempe & Gurih' => 'gurih',
-                            'Paket Bundling & Hampers' => 'bundling',
-                        },
+                        'category' => $k->kategori,
                         'weight' => $k->berat,
                         'price' => $k->harga,
                         'desc' => $k->deskripsi ?? '',
@@ -651,25 +647,21 @@
 
             <!-- Category Filter Buttons -->
             <div
-                class="flex items-center justify-center gap-1.5 bg-white p-1 rounded-xl text-xs font-bold border border-stone-200/80 shadow-xs mb-6 w-fit mx-auto">
+                class="flex flex-wrap items-center justify-center gap-1.5 bg-white p-1 rounded-xl text-xs font-bold border border-stone-200/80 shadow-xs mb-6 w-fit mx-auto">
                 <button @click="selectedCategory = 'all'"
                     :class="selectedCategory === 'all' ? 'bg-mentari-green text-white' :
                         'text-stone-600 hover:text-stone-900'"
                     class="px-3.5 py-1.5 rounded-lg transition">
                     Semua
                 </button>
-                <button @click="selectedCategory = 'buah'"
-                    :class="selectedCategory === 'buah' ? 'bg-mentari-green text-white' :
-                        'text-stone-600 hover:text-stone-900'"
-                    class="px-3.5 py-1.5 rounded-lg transition">
-                    Keripik Buah
-                </button>
-                <button @click="selectedCategory = 'gurih'"
-                    :class="selectedCategory === 'gurih' ? 'bg-mentari-green text-white' :
-                        'text-stone-600 hover:text-stone-900'"
-                    class="px-3.5 py-1.5 rounded-lg transition">
-                    Gurih
-                </button>
+                @foreach ($categories ?? [] as $category)
+                    <button @click="selectedCategory = @js($category)"
+                        :class="selectedCategory === @js($category) ? 'bg-mentari-green text-white' :
+                            'text-stone-600 hover:text-stone-900'"
+                        class="px-3.5 py-1.5 rounded-lg transition whitespace-nowrap">
+                        {{ $category }}
+                    </button>
+                @endforeach
 
             </div>
 
@@ -955,7 +947,8 @@
                         class="h-12 w-auto object-contain bg-white rounded-xl p-1.5 shadow-sm transition group-hover:scale-105">
                     <div>
                         <span class="text-xl font-black tracking-tight text-white block leading-none">MENTARI</span>
-                        <span class="text-[11px] text-stone-400 font-medium tracking-widest uppercase mt-1 block">Oleh-Oleh Khas Malang</span>
+                        <span class="text-[11px] font-semibold tracking-wide text-mentari-gold block mt-1">by Yenero</span>
+                        <span class="text-[10px] text-stone-400 font-medium tracking-widest uppercase mt-1 block">Oleh-Oleh Khas Malang</span>
                     </div>
                 </a>
 
@@ -1068,7 +1061,7 @@
         <!-- Corporate Bottom Bar -->
         <div class="pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-stone-500">
             <div class="flex flex-wrap items-center justify-center md:justify-start gap-x-6 gap-y-2">
-                <p>&copy; {{ date('Y') }} <strong class="text-stone-300 font-semibold">UD. Mentari Jaya Abadi</strong>. All rights reserved.</p>
+                <p>&copy; {{ date('Y') }} <strong class="text-stone-300 font-semibold">Mentari by Yenero</strong>. All rights reserved.</p>
             </div>
 
             <div class="flex items-center gap-6">

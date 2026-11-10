@@ -2,7 +2,6 @@
 
 namespace App\Http\Requests;
 
-use App\Enums\KategoriKeripik;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -19,7 +18,7 @@ class StoreKeripikRequest extends FormRequest
     {
         return [
             'nama' => ['required', 'string', 'max:255'],
-            'kategori' => ['required', Rule::in(KategoriKeripik::values())],
+            'kategori' => ['required', Rule::exists('kategoris', 'nama')],
             'harga' => ['required', 'integer', 'min:0'],
             'stok' => ['required', 'integer', 'min:0'],
             'berat' => ['required', 'string', 'max:50'],
@@ -36,7 +35,7 @@ class StoreKeripikRequest extends FormRequest
         return [
             'nama.required' => 'Nama keripik wajib diisi.',
             'kategori.required' => 'Kategori produk wajib dipilih.',
-            'kategori.in' => 'Pilih salah satu kategori produk yang tersedia.',
+            'kategori.exists' => 'Pilih salah satu kategori produk yang tersedia.',
             'harga.required' => 'Harga produk wajib diisi.',
             'harga.integer' => 'Harga harus berupa angka bulat positif.',
             'stok.required' => 'Jumlah stok wajib diisi.',
